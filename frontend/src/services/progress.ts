@@ -52,13 +52,15 @@ export interface OverallStats {
   totalResources: number;
   completedResources: number;
   inProgressResources: number;
+  notStartedResources: number;
   totalTimeSpent: number;
-  averageCompletionPercentage: number;
+  averageCompletionRate: number;
   recentActivity: Array<{
+    id: string;
     planId: string;
-    planTitle: string;
-    lastUpdated: string;
-    completionPercentage: number;
+    resourceTitle: string;
+    status: string;
+    updatedAt: string;
   }>;
 }
 

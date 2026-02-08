@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { progressApi } from '../services/progress';
 
@@ -23,10 +23,36 @@ export function ResourceNotes({
 }: ResourceNotesProps) {
   const [notes, setNotes] = useState(initialNotes || '');
   const queryClient = useQueryClient();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setNotes(initialNotes || '');
   }, [initialNotes, isOpen]);
+
+  // Focus trap and escape key handling
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Focus the textarea when modal opens
+    textareaRef.current?.focus();
+
+    // Handle escape key
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
 
   const saveMutation = useMutation({
     mutationFn: (notesText: string) =>
@@ -55,13 +81,23 @@ export function ResourceNotes({
   const isOverLimit = remainingChars < 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div
+        ref={modalRef}
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
                 Resource Notes
               </h2>
               <p className="text-sm text-gray-600 mt-1 line-clamp-2">
@@ -93,9 +129,11 @@ export function ResourceNotes({
         {/* Content */}
         <div className="px-6 py-4 flex-1 overflow-y-auto">
           <textarea
+            ref={textareaRef}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Add notes about this resource (optional)..."
+            aria-label="Resource notes"
             className={`w-full h-64 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 transition-colors ${
               isOverLimit
                 ? 'border-red-300 focus:ring-red-500 focus:border-red-500'

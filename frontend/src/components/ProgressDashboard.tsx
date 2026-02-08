@@ -77,12 +77,9 @@ export function ProgressDashboard({ planId }: ProgressDashboardProps) {
               totalResources: stats.totalResources,
               completedCount: stats.completedResources,
               inProgressCount: stats.inProgressResources,
-              notStartedCount:
-                stats.totalResources -
-                stats.completedResources -
-                stats.inProgressResources,
+              notStartedCount: stats.notStartedResources,
               totalTimeSpent: stats.totalTimeSpent,
-              completionPercentage: Math.round(stats.averageCompletionPercentage),
+              completionPercentage: Math.round(stats.averageCompletionRate),
             }}
             totalTimeSpent={stats.totalTimeSpent}
           />
@@ -104,7 +101,7 @@ export function ProgressDashboard({ planId }: ProgressDashboardProps) {
               Average Completion
             </h3>
             <p className="text-4xl font-bold text-green-600">
-              {Math.round(stats.averageCompletionPercentage)}%
+              {Math.round(stats.averageCompletionRate)}%
             </p>
           </div>
         </div>
@@ -118,26 +115,28 @@ export function ProgressDashboard({ planId }: ProgressDashboardProps) {
             <div className="space-y-3">
               {stats.recentActivity.map((activity) => (
                 <Link
-                  key={activity.planId}
+                  key={activity.id}
                   to={`/plans/${activity.planId}`}
                   className="block p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900">
-                      {activity.planTitle}
+                      {activity.resourceTitle}
                     </h4>
-                    <span className="text-sm text-gray-600">
-                      {activity.completionPercentage}% complete
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        activity.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : activity.status === 'in_progress'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {activity.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-indigo-600 h-2 rounded-full transition-all"
-                      style={{ width: `${activity.completionPercentage}%` }}
-                    />
-                  </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Last updated: {new Date(activity.lastUpdated).toLocaleDateString()}
+                    Last updated: {new Date(activity.updatedAt).toLocaleDateString()}
                   </p>
                 </Link>
               ))}

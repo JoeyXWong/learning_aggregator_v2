@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { plansApi, type LearningPlan } from '../services/plans';
+import { plansApi, type LearningPlan, type PlanResource } from '../services/plans';
 import { ProgressTracker, useResourceProgress } from './ProgressTracker';
 import { ResourceNotes } from './ResourceNotes';
 import { progressApi, type ProgressStatus } from '../services/progress';
@@ -73,7 +73,7 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
   };
 
   const handleOpenNotes = (resourceId: string, resourceTitle: string) => {
-    const entry = progressData?.data.progressEntries.find(
+    const entry = progressData?.data?.progressEntries.find(
       (e) => e.resourceId === resourceId
     );
     setNotesModal({
@@ -286,7 +286,7 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
 
 // Resource Item with Progress Checkbox
 interface ResourceItemProps {
-  resource: any;
+  resource: PlanResource;
   index: number;
   planId: string;
   onOpenNotes: (resourceId: string, resourceTitle: string) => void;
@@ -334,6 +334,7 @@ function ResourceItem({ resource, index, planId, onOpenNotes }: ResourceItemProp
           onClick={toggleStatus}
           disabled={isUpdating}
           className="flex-shrink-0 mt-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded disabled:opacity-50"
+          aria-label={`Toggle status: currently ${status.replace('_', ' ')}`}
           title={`Status: ${status}`}
         >
           {getStatusIcon(status)}

@@ -12,99 +12,9 @@ interface ProgressTrackerProps {
 }
 
 export function ProgressTracker({ planId, resources }: ProgressTrackerProps) {
-  const queryClient = useQueryClient();
-
   const { data, isLoading } = useQuery({
     queryKey: ['progress', planId],
     queryFn: () => progressApi.getPlanProgress(planId),
-  });
-
-  // Mutation for updating progress (used in child components via hook)
-  useMutation({
-    mutationFn: (params: {
-      resourceId: string;
-      currentStatus: ProgressStatus;
-    }) => {
-      const nextStatus = getNextStatus(params.currentStatus);
-      return progressApi.createProgress({
-        planId,
-        resourceId: params.resourceId,
-        status: nextStatus,
-      });
-    },
-    onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: ['progress', planId] });
-      const previousData = queryClient.getQueryData(['progress', planId]);
-
-      // Optimistically update to next status
-      queryClient.setQueryData(['progress', planId], (old: any) => {
-        if (!old) return old;
-
-        const nextStatus = getNextStatus(params.currentStatus);
-        const existingEntry = old.data.progressEntries.find(
-          (e: ProgressEntry) => e.resourceId === params.resourceId
-        );
-
-        let updatedEntries;
-        if (existingEntry) {
-          updatedEntries = old.data.progressEntries.map((e: ProgressEntry) =>
-            e.resourceId === params.resourceId ? { ...e, status: nextStatus } : e
-          );
-        } else {
-          updatedEntries = [
-            ...old.data.progressEntries,
-            {
-              id: `temp-${params.resourceId}`,
-              planId,
-              resourceId: params.resourceId,
-              status: nextStatus,
-              notes: null,
-              timeSpent: null,
-              startedAt: null,
-              completedAt: null,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          ];
-        }
-
-        // Recalculate summary
-        const completedCount = updatedEntries.filter(
-          (e: ProgressEntry) => e.status === 'completed'
-        ).length;
-        const inProgressCount = updatedEntries.filter(
-          (e: ProgressEntry) => e.status === 'in_progress'
-        ).length;
-        const totalResources = resources.length;
-        const notStartedCount = totalResources - completedCount - inProgressCount;
-
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            progressEntries: updatedEntries,
-            summary: {
-              ...old.data.summary,
-              completedCount,
-              inProgressCount,
-              notStartedCount,
-              completionPercentage: Math.round((completedCount / totalResources) * 100),
-            },
-          },
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (_err, _params, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['progress', planId], context.previousData);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['progress', planId] });
-      queryClient.invalidateQueries({ queryKey: ['plan', planId] });
-    },
   });
 
   if (isLoading) {
@@ -162,9 +72,6 @@ export function ProgressTracker({ planId, resources }: ProgressTrackerProps) {
           <span className="text-gray-600">Completed: {summary.completedCount}</span>
         </div>
       </div>
-
-      {/* Resource Checkboxes (rendered by parent) */}
-      <input type="hidden" data-testid="progress-tracker-mounted" />
     </div>
   );
 }
@@ -237,11 +144,31 @@ export function useResourceProgress(planId: string, resourceId: string) {
           ];
         }
 
+        // Recalculate summary counts
+        const completedCount = updatedEntries.filter(
+          (e: ProgressEntry) => e.status === 'completed'
+        ).length;
+        const inProgressCount = updatedEntries.filter(
+          (e: ProgressEntry) => e.status === 'in_progress'
+        ).length;
+        const totalResources = old.data.summary.totalResources;
+        const notStartedCount = totalResources - completedCount - inProgressCount;
+        const completionPercentage = totalResources > 0
+          ? Math.round((completedCount / totalResources) * 100)
+          : 0;
+
         return {
           ...old,
           data: {
             ...old.data,
             progressEntries: updatedEntries,
+            summary: {
+              ...old.data.summary,
+              completedCount,
+              inProgressCount,
+              notStartedCount,
+              completionPercentage,
+            },
           },
         };
       });
