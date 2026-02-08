@@ -1,0 +1,121 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Topic {
+  id               String         @id @default(cuid())
+  name             String
+  normalizedName   String         @map("normalized_name")
+  slug             String         @unique
+  createdAt        DateTime       @default(now()) @map("created_at")
+  lastAggregatedAt DateTime?      @map("last_aggregated_at")
+  resourceCount    Int            @default(0) @map("resource_count")
+  metadata         String         @default("{}")
+  resources        TopicResource[]
+  learningPlans    LearningPlan[]
+
+  @@index([normalizedName])
+  @@index([slug])
+  @@index([lastAggregatedAt])
+  @@map("topics")
+}
+
+model Resource {
+  id              String          @id @default(cuid())
+  title           String
+  description     String?
+  url             String          @unique
+  normalizedUrl   String          @map("normalized_url")
+  type            String
+  difficulty      String?
+  pricing         String?
+  platform        String?
+  duration        Int?
+  rating          Float?
+  reviewCount     Int?            @map("review_count")
+  viewCount       Int?            @map("view_count")
+  publishDate     DateTime?       @map("publish_date")
+  lastUpdatedDate DateTime?       @map("last_updated_date")
+  lastVerifiedAt  DateTime?       @map("last_verified_at")
+  qualityScore    Int?            @map("quality_score")
+  thumbnailUrl    String?         @map("thumbnail_url")
+  metadata        String          @default("{}")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  topics          TopicResource[]
+  progressEntries ProgressEntry[]
+
+  @@index([url])
+  @@index([normalizedUrl])
+  @@index([type])
+  @@index([difficulty])
+  @@index([pricing])
+  @@index([platform])
+  @@index([qualityScore(sort: Desc)])
+  @@index([rating(sort: Desc)])
+  @@map("resources")
+}
+
+model TopicResource {
+  id             String   @id @default(cuid())
+  topicId        String   @map("topic_id")
+  resourceId     String   @map("resource_id")
+  relevanceScore Float?   @map("relevance_score")
+  createdAt      DateTime @default(now()) @map("created_at")
+  topic          Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  resource       Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, resourceId])
+  @@index([topicId])
+  @@index([resourceId])
+  @@index([relevanceScore(sort: Desc)])
+  @@map("topic_resources")
+}
+
+model LearningPlan {
+  id                   String          @id @default(cuid())
+  topicId              String          @map("topic_id")
+  title                String
+  preferences          String
+  phases               String
+  totalDuration        Int?            @map("total_duration")
+  completionPercentage Float           @default(0) @map("completion_percentage")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+  topic                Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  progressEntries      ProgressEntry[]
+
+  @@index([topicId])
+  @@index([createdAt(sort: Desc)])
+  @@map("learning_plans")
+}
+
+model ProgressEntry {
+  id          String       @id @default(cuid())
+  planId      String       @map("plan_id")
+  resourceId  String       @map("resource_id")
+  status      String
+  startedAt   DateTime?    @map("started_at")
+  completedAt DateTime?    @map("completed_at")
+  notes       String?
+  timeSpent   Int?         @map("time_spent")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  plan        LearningPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  resource    Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, resourceId])
+  @@index([planId])
+  @@index([resourceId])
+  @@index([status])
+  @@index([completedAt])
+  @@map("progress_entries")
+}
