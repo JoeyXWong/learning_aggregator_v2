@@ -19,7 +19,8 @@ export function ProgressTracker({ planId, resources }: ProgressTrackerProps) {
     queryFn: () => progressApi.getPlanProgress(planId),
   });
 
-  const updateMutation = useMutation({
+  // Mutation for updating progress (used in child components via hook)
+  useMutation({
     mutationFn: (params: {
       resourceId: string;
       currentStatus: ProgressStatus;
@@ -105,17 +106,6 @@ export function ProgressTracker({ planId, resources }: ProgressTrackerProps) {
       queryClient.invalidateQueries({ queryKey: ['plan', planId] });
     },
   });
-
-  const getResourceStatus = (resourceId: string): ProgressStatus => {
-    if (!data?.data.progressEntries) return 'not_started';
-    const entry = data.data.progressEntries.find((e) => e.resourceId === resourceId);
-    return entry?.status || 'not_started';
-  };
-
-  const handleToggle = (resourceId: string) => {
-    const currentStatus = getResourceStatus(resourceId);
-    updateMutation.mutate({ resourceId, currentStatus });
-  };
 
   if (isLoading) {
     return (

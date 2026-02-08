@@ -88,8 +88,6 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
     setNotesModal(null);
   };
 
-  const allResources = plan.phases.flatMap((phase) => phase.resources);
-
   if (isLoading) {
     return (
       <div className="card">
@@ -116,6 +114,7 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
   }
 
   const plan: LearningPlan = data.data;
+  const allResources = plan.phases.flatMap((phase) => phase.resources);
 
   return (
     <div className="space-y-6">
