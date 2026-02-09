@@ -38,7 +38,7 @@ describe('PlanGenerator', () => {
       id: 'plan-123',
       topicId: 'topic-1',
       title: 'React Learning Plan',
-      preferences: { pace: 'moderate', freeOnly: false },
+      preferences: { pace: 'moderate' as const, freeOnly: false },
       phases: [],
       totalDuration: 40,
       completionPercentage: 0,
@@ -111,7 +111,6 @@ describe('PlanGenerator', () => {
   });
 
   it('calls generatePlan with correct data on submit', async () => {
-    const user = userEvent.setup();
     vi.mocked(plansApi.plansApi.generatePlan).mockResolvedValue(mockPlanResponse);
 
     renderWithProvider(
@@ -136,7 +135,6 @@ describe('PlanGenerator', () => {
   });
 
   it('calls onPlanGenerated on successful generation', async () => {
-    const user = userEvent.setup();
     vi.mocked(plansApi.plansApi.generatePlan).mockResolvedValue(mockPlanResponse);
 
     renderWithProvider(
