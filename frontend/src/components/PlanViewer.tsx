@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { plansApi, type LearningPlan } from '../services/plans';
+import { plansApi, type LearningPlan, type PlanResource } from '../services/plans';
+import { ProgressTracker, useResourceProgress } from './ProgressTracker';
+import { ResourceNotes } from './ResourceNotes';
+import { progressApi, type ProgressStatus } from '../services/progress';
 
 interface PlanViewerProps {
   planId: string;
@@ -9,11 +12,22 @@ interface PlanViewerProps {
 
 export function PlanViewer({ planId, onBack }: PlanViewerProps) {
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set([1]));
+  const [notesModal, setNotesModal] = useState<{
+    isOpen: boolean;
+    resourceId: string;
+    resourceTitle: string;
+    notes: string | null;
+  } | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['plan', planId],
     queryFn: () => plansApi.getPlan(planId),
+  });
+
+  const { data: progressData } = useQuery({
+    queryKey: ['progress', planId],
+    queryFn: () => progressApi.getPlanProgress(planId),
   });
 
   const deleteMutation = useMutation({
@@ -58,6 +72,22 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
     });
   };
 
+  const handleOpenNotes = (resourceId: string, resourceTitle: string) => {
+    const entry = progressData?.data?.progressEntries.find(
+      (e) => e.resourceId === resourceId
+    );
+    setNotesModal({
+      isOpen: true,
+      resourceId,
+      resourceTitle,
+      notes: entry?.notes || null,
+    });
+  };
+
+  const handleCloseNotes = () => {
+    setNotesModal(null);
+  };
+
   if (isLoading) {
     return (
       <div className="card">
@@ -84,6 +114,7 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
   }
 
   const plan: LearningPlan = data.data;
+  const allResources = plan.phases.flatMap((phase) => phase.resources);
 
   return (
     <div className="space-y-6">
@@ -117,20 +148,9 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
           </button>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Tracker */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-            <span className="text-sm text-gray-600">
-              {plan.completionPercentage.toFixed(0)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-indigo-600 h-2 rounded-full transition-all"
-              style={{ width: `${plan.completionPercentage}%` }}
-            />
-          </div>
+          <ProgressTracker planId={planId} resources={allResources} />
         </div>
 
         {/* Preferences */}
@@ -226,56 +246,13 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
             {expandedPhases.has(phase.order) && (
               <div className="mt-6 space-y-3 pl-14">
                 {phase.resources.map((resource, idx) => (
-                  <div
+                  <ResourceItem
                     key={resource.resourceId}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-semibold text-gray-500">
-                            {idx + 1}.
-                          </span>
-                          <a
-                            href={resource.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-base font-semibold text-indigo-600 hover:text-indigo-700"
-                          >
-                            {resource.title}
-                          </a>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            {resource.type}
-                          </span>
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                              resource.difficulty === 'beginner'
-                                ? 'bg-green-100 text-green-800'
-                                : resource.difficulty === 'intermediate'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : resource.difficulty === 'advanced'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {resource.difficulty}
-                          </span>
-                          {resource.duration && (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                              {resource.duration} min
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-sm text-gray-700 italic">
-                          {resource.reason}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    resource={resource}
+                    index={idx}
+                    planId={planId}
+                    onOpenNotes={handleOpenNotes}
+                  />
                 ))}
               </div>
             )}
@@ -290,6 +267,138 @@ export function PlanViewer({ planId, onBack }: PlanViewerProps) {
           best learning experience. Each phase builds on the knowledge from previous
           phases.
         </p>
+      </div>
+
+      {/* Notes Modal */}
+      {notesModal && (
+        <ResourceNotes
+          planId={planId}
+          resourceId={notesModal.resourceId}
+          resourceTitle={notesModal.resourceTitle}
+          initialNotes={notesModal.notes}
+          isOpen={notesModal.isOpen}
+          onClose={handleCloseNotes}
+        />
+      )}
+    </div>
+  );
+}
+
+// Resource Item with Progress Checkbox
+interface ResourceItemProps {
+  resource: PlanResource;
+  index: number;
+  planId: string;
+  onOpenNotes: (resourceId: string, resourceTitle: string) => void;
+}
+
+function ResourceItem({ resource, index, planId, onOpenNotes }: ResourceItemProps) {
+  const { status, toggleStatus, isUpdating } = useResourceProgress(
+    planId,
+    resource.resourceId
+  );
+
+  const getStatusIcon = (status: ProgressStatus) => {
+    if (status === 'completed') {
+      return (
+        <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clipRule="evenodd"
+          />
+        </svg>
+      );
+    }
+    if (status === 'in_progress') {
+      return (
+        <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+            clipRule="evenodd"
+          />
+        </svg>
+      );
+    }
+    return (
+      <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+    );
+  };
+
+  return (
+    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex items-start gap-3">
+        {/* Status Checkbox */}
+        <button
+          onClick={toggleStatus}
+          disabled={isUpdating}
+          className="flex-shrink-0 mt-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded disabled:opacity-50"
+          aria-label={`Toggle status: currently ${status.replace('_', ' ')}`}
+          title={`Status: ${status}`}
+        >
+          {getStatusIcon(status)}
+        </button>
+
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-gray-500">
+              {index + 1}.
+            </span>
+            <a
+              href={resource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              {resource.title}
+            </a>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+              {resource.type}
+            </span>
+            <span
+              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                resource.difficulty === 'beginner'
+                  ? 'bg-green-100 text-green-800'
+                  : resource.difficulty === 'intermediate'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : resource.difficulty === 'advanced'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {resource.difficulty}
+            </span>
+            {resource.duration && (
+              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                {resource.duration} min
+              </span>
+            )}
+          </div>
+
+          <p className="text-sm text-gray-700 italic mb-3">
+            {resource.reason}
+          </p>
+
+          {/* Add Notes Button */}
+          <button
+            onClick={() => onOpenNotes(resource.resourceId, resource.title)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            Add Note
+          </button>
+        </div>
       </div>
     </div>
   );
