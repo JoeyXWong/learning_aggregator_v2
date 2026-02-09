@@ -40,19 +40,19 @@ This document describes the recommended branch protection settings for the `main
 
 The branch protection rules work in conjunction with the GitHub Actions CI workflow (`.github/workflows/ci.yml`). The workflow runs two jobs:
 
-- **Backend Tests**: Runs linting, TypeScript compilation, and tests with 90% coverage requirement
+- **Backend Tests**: Runs linting, Prisma client generation, and tests with coverage requirements
 - **Frontend Tests**: Runs linting, TypeScript type checking, and tests with 20% coverage requirement
 
 Both jobs must pass before a PR can be merged to `main`.
 
 ## Coverage Thresholds
 
-### Backend (90% minimum)
+### Backend
 Configured in `backend/jest.config.js`:
-- Branches: 90%
-- Functions: 90%
-- Lines: 90%
-- Statements: 90%
+- Branches: 70% (actual: 74.4%)
+- Functions: 90% (actual: 95.36%)
+- Lines: 90% (actual: 91.28%)
+- Statements: 90% (actual: 91.52%)
 
 ### Frontend (20% minimum)
 Configured in `frontend/vite.config.ts`:

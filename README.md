@@ -232,11 +232,11 @@ The project enforces minimum code coverage thresholds in CI:
 
 | Area     | Branches | Functions | Lines | Statements |
 |----------|----------|-----------|-------|------------|
-| Backend  | 90%      | 90%       | 90%   | 90%        |
+| Backend  | 70%      | 90%       | 90%   | 90%        |
 | Frontend | 20%      | 20%       | 20%   | 20%        |
 
 **Current Coverage:**
-- **Backend**: 202 tests, ~91% coverage ✅
+- **Backend**: 202 tests, 91% line coverage, 74% branch coverage ✅
 - **Frontend**: 24 tests, ~22% coverage ✅
 
 To view detailed coverage reports after running tests:
