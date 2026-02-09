@@ -1,5 +1,7 @@
 # Learning Aggregator V2
 
+[![CI](https://github.com/JoeyXWong/learning_aggregator_v2/actions/workflows/ci.yml/badge.svg)](https://github.com/JoeyXWong/learning_aggregator_v2/actions/workflows/ci.yml)
+
 A web application that helps users create personalized learning plans for any topic by aggregating and curating the best learning resources from across the internet.
 
 ## Overview
@@ -47,7 +49,11 @@ See [MILESTONES.md](MILESTONES.md) for the complete roadmap.
 
 ### Infrastructure
 - **Deployment**: Railway/Render (planned)
-- **CI/CD**: GitHub Actions (planned)
+- **CI/CD**: GitHub Actions
+  - Automated testing on every push and PR
+  - Parallel backend and frontend test jobs
+  - Enforced coverage thresholds
+  - Linting and type checking
 
 ---
 
@@ -204,18 +210,55 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for complete details.
 
 ## Testing
 
-### Backend Tests
+### Running Tests Locally
+
+**Backend Tests**
 ```bash
 cd backend
-npm test                 # Run all tests
-npm run test:watch       # Watch mode
+npm test                 # Run all tests with coverage
+npm run test:watch       # Watch mode for development
 ```
 
-### Frontend Tests
+**Frontend Tests**
 ```bash
 cd frontend
-npm test                 # Run all tests
-npm run test:coverage    # With coverage
+npm test                 # Run all tests in watch mode
+npm run test:coverage    # Run tests with coverage report
+```
+
+### Coverage Requirements
+
+The project enforces minimum code coverage thresholds in CI:
+
+| Area     | Branches | Functions | Lines | Statements |
+|----------|----------|-----------|-------|------------|
+| Backend  | 90%      | 90%       | 90%   | 90%        |
+| Frontend | 20%      | 20%       | 20%   | 20%        |
+
+**Current Coverage:**
+- **Backend**: 202 tests, ~91% coverage ✅
+- **Frontend**: 24 tests, ~22% coverage ✅
+
+To view detailed coverage reports after running tests:
+- **Backend**: Open `backend/coverage/lcov-report/index.html`
+- **Frontend**: Open `frontend/coverage/index.html`
+
+### Pre-Commit Checklist
+
+Before submitting a PR, ensure:
+```bash
+# Backend
+cd backend
+npm run lint              # Check linting
+npm test                  # Run tests with coverage
+npm run build             # Verify TypeScript compilation
+
+# Frontend
+cd frontend
+npm run lint              # Check linting
+npx tsc --noEmit         # Type check without emitting files
+npm run test:coverage    # Run tests with coverage
+npm run build            # Verify production build
 ```
 
 ---
