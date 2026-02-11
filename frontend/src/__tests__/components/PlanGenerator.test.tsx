@@ -168,6 +168,8 @@ describe('PlanGenerator', () => {
     await waitFor(() => {
       expect(screen.getByText(/Generating Plan.../i)).toBeInTheDocument();
     });
+
+    expect(screen.getByText(/This typically takes 15-25 seconds/i)).toBeInTheDocument();
   });
 
   it('shows error message on failure', async () => {
