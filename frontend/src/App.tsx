@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { api } from './services/api';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { HomePage } from './pages/HomePage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { PlanGeneratorPage } from './pages/PlanGeneratorPage';
@@ -77,12 +78,12 @@ function App() {
         {/* Main Content */}
         <main className="container mx-auto px-4 py-8">
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/topics/:topicId/resources" element={<ResourcesPage />} />
-            <Route path="/topics/:topicId/plan" element={<PlanGeneratorPage />} />
-            <Route path="/plans/:planId" element={<PlanViewerPage />} />
-            <Route path="/progress/:planId?" element={<ProgressDashboardPage />} />
-            <Route path="*" element={<NotFoundPage />} />
+            <Route path="/" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
+            <Route path="/topics/:topicId/resources" element={<ErrorBoundary><ResourcesPage /></ErrorBoundary>} />
+            <Route path="/topics/:topicId/plan" element={<ErrorBoundary><PlanGeneratorPage /></ErrorBoundary>} />
+            <Route path="/plans/:planId" element={<ErrorBoundary><PlanViewerPage /></ErrorBoundary>} />
+            <Route path="/progress/:planId?" element={<ErrorBoundary><ProgressDashboardPage /></ErrorBoundary>} />
+            <Route path="*" element={<ErrorBoundary><NotFoundPage /></ErrorBoundary>} />
           </Routes>
         </main>
 
