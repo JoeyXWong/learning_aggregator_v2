@@ -176,6 +176,18 @@ export function PlanGenerator({ topicId, onPlanGenerated }: PlanGeneratorProps) 
             )}
           </button>
         </div>
+
+        {/* Generation Progress Message */}
+        {generateMutation.isPending && (
+          <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
+            <p className="text-sm font-medium text-indigo-900">
+              Analyzing resources and building your personalized learning plan...
+            </p>
+            <p className="text-xs text-indigo-700 mt-1">
+              This typically takes 15-25 seconds. Please don't close this page.
+            </p>
+          </div>
+        )}
       </form>
 
       {/* Info Box */}
